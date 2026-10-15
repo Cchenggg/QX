@@ -1,12 +1,35 @@
-# 去广告 — Quantumult X
+# 两步路去广告 — Quantumult X
+
+针对「两步路 / 户外助手」(`lolaage.2bulu.zhushou`) 的去广告规则与脚本。
+
+解决的痛点：**开屏和弹窗广告极易误触、直接跳转第三方 App**（有赞商城、App Store、京东等）。
+
+- 适配版本：iOS **9.2.7**（2026-10-15 抓包）
+- 脚本清单：[`SCRIPTS.md`](SCRIPTS.md)
+
+---
 
 ## 一、安装（5 分钟）
 
-### 步骤 1：把配置追加到 QX
+### 步骤 1：把配置加进 QX
+
+两种方式任选，**推荐引用模式**（配一次，以后规则更新自动同步）。
+
+#### 方式 A：引用模式（推荐）
+
+| 位置 | 地址 |
+|---|---|
+| 设置 → **重写** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.snippet` |
+| 设置 → **过滤器** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/filter.snippet` |
+
+`rewrite.snippet` 里已含 `hostname = helper.2bulu.com, utility.2bulu.com`，
+引用后 MITM 主机名自动生效，不用再手动加。
+
+#### 方式 B：手动追加
 
 打开 **QX → 设置 → 配置文件 → 点当前配置右侧 `⋯` → 编辑**，把
 [`rewrite.conf`](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf)
-里的内容追加进去，注意：
+里的内容按下面方式合并：
 
 | 段落              | 怎么加                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -14,28 +37,16 @@
 | `[filter_local]`  | 同上，贴 31 条 `host, 域名, reject`                                                        |
 | `[mitm]`          | 把 `hostname` 那行**追加**到已有的 hostname 后面，**不要覆盖**                             |
 
-> **偷懒办法**：也可以走「引用模式」——QX → 设置 → 重写 → 引用 → 添加：
+> **推荐：引用模式**（改规则后 QX 自动同步，不用再手动贴）
+> ⚠️ **引用模式的两个常见报错**（都跟地址格式有关）：
 >
-> ```
-> https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
-> ```
+> | 报错 | 原因 | 正确做法 |
+> |---|---|---|
+> | `Invalid Line<!DOCTYPE html>` | 用了 `github.com/.../blob/...` 网页地址，QX 拿到 258KB HTML | 改用 `raw.githubusercontent.com` 地址 |
+> | `Invalid Line [rewrite_local]` | 引用了含 `[section]` 标题的完整配置文件 | 引用**纯规则**片段（`.snippet`），别引用 `.conf` |
 >
-> ⚠️ 引用地址**必须用 raw 地址，不能用 `github.com/.../blob/...` 网页地址**：
->
-> ```
-> ✅ https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
-> ✅ https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf   （QX 里 GitHub 走代理时用）
-> ✅ https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
-> ❌ https://github.com/Cchenggg/QX/blob/main/rewrite.conf
-> ```
->
-> 用 ❌ 会报 **`Invalid Line<!DOCTYPE html>`**：`blob` 地址是给人看的网页，
-> QX 下载到的是 258KB 的 HTML 页面，解析到第一行 `<!DOCTYPE html>` 就报错。
-> 正确地址返回的是 5585B 配置原文（已核对 SHA256 与仓库文件逐字节一致）。
->
-> 走引用模式后规则改动你在 GitHub 一提交，QX 自动同步。
-> 但 **`[filter_local]` 的域名拦截和 `[mitm]` 的 hostname 不一定随引用生效**，
-> 保险起见这两段仍按上表手动加一次（加完就不用再管）。
+> 依据：QX 官方 [sample-import-rewrite.snippet](https://github.com/crossutility/Quantumult-X/blob/master/sample-import-rewrite.snippet)
+> 里只有规则行和可选的 `hostname` 行，没有任何 `[section]` 标题。
 
 保存后 QX 会提示重新加载配置，确认。
 

@@ -1,0 +1,61 @@
+; ===================================================================
+; 两步路去广告 — Quantumult X 过滤器引用片段
+;
+; 【用法】QX → 设置 → 过滤器 → 引用 → 添加，填：
+;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/filter.snippet
+;
+; 【注意】引用文件里不能出现 [filter_local] 这类 section 标题，
+; 否则 QX 会报 Invalid Line。本文件是纯规则列表。
+;
+; host reject 是 DNS 层拦截（QX 对该域名返回 127.0.0.1），
+; 不需要 MITM。这是「开屏/弹窗跳转第三方 App」的根治办法：
+; 广告素材由第三方联盟 SDK 下发，域名被 reject 后 SDK 永远拿不到
+; 可跳转的素材。
+;
+; 重写规则见 rewrite.snippet。
+; ===================================================================
+
+; ── 两步路去广告：广告联盟域名 ──
+
+; 开屏/插屏广告素材与投放（最关键：快手联盟，抓包里的创意图来源）
+host, p66-ad.adkwai.com, reject
+
+; 穿山甲 / 字节 GroMore
+host, api-access.pangolin-sdk-toutiao.com, reject
+host, api-access.pangolin-sdk-toutiao1.com, reject
+host, log-api.pangolin-sdk-toutiao.com, reject
+host, gromore.pangolin-sdk-toutiao.com, reject
+host, sf3-fe-tos.pglstatp-toutiao.com, reject
+
+; 广告聚合 / 竞价平台
+host, sdk.adx.adwangmai.com, reject
+host, sdk-cfg.adx.adwangmai.com, reject
+host, api-htp.beizi.biz, reject
+host, sdk.beizi.biz, reject
+host, sdkg.fancyapi.com, reject
+host, t2.fancyapi.com, reject
+host, static.fancyapi.com, reject
+host, lftxali.fancyapi.com, reject
+host, mpcfg.fancydsp.com, reject
+host, entry-su1.ubixioe.com, reject
+host, adx-cfg-u1.ubixioe.com, reject
+host, sdk.1rtb.net, reject
+host, s.tuia.cn, reject
+host, sdk-track.66mobi.com, reject
+host, tstatic.66mobi.com, reject
+host, sdk.zhangyuyidong.cn, reject
+host, sdklog.zhangyuyidong.cn, reject
+host, de.ad.gameley.com, reject
+host, jp.ad.gameley.com, reject
+
+; 其他联盟
+host, mi.gdt.qq.com, reject
+host, v2mi.gdt.qq.com, reject
+host, adsmartget.guangtuikeji.com, reject
+host, report2.dhsz.cn, reject
+host, im-x.jd.com, reject
+host, api.ocpx.ydmob.com, reject
+
+; 注：sdk.e.qq.com / tk.anythinktech.com / ujoy.anythinktech.com /
+;     adx-bj.anythinktech.com / da.statisticslinks.com 多为 SDK 上报接口，
+;     拦不拦都不影响去广告效果，故默认放行，少拦一点更稳。
