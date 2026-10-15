@@ -1,37 +1,32 @@
 ; ===================================================================
-; 两步路去广告 — Quantumult X 重写引用片段
+; 多 App 去广告 — 重写聚合片段（1 个 App）
 ;
 ; 【用法】QX → 设置 → 重写 → 引用 → 添加，填：
-;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.snippet
+;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet
 ;
-; 【注意】引用文件里不能出现 [rewrite_local] 这类 section 标题，
-; 否则 QX 会报 Invalid Line [rewrite_local]。
-; 本文件是纯规则列表，并带有 hostname 行（引用时会一并生效 MITM 主机名）。
+; 【注意】本文件是纯规则列表，不含 [section] 标题。
+; 不要引用 .conf 配置文件，否则 QX 会报 Invalid Line [rewrite_local]。
+; 不要用 github.com/.../blob/... 网页地址，会报 Invalid Line<!DOCTYPE html>。
 ;
-; 域名拦截规则见 filter.snippet，需单独引用到「过滤器」。
-;
-; 【脚本地址】用 gh-proxy.com 前缀代理（raw 直连国内不稳定）。
-; 若确定 QX 里 GitHub 走代理，可整体替换为：
-;   https://raw.githubusercontent.com/Cchenggg/QX/main/
+; 此文件由 build.js 从 apps/*.js 生成，请勿手动修改。
+; 来源：apps/tbulu.js
 ; ===================================================================
 
-; ── MITM 主机名（引用生效，若未生效请手动加到 设置→MitM）──
-hostname = helper.2bulu.com, utility.2bulu.com
+; ── MITM 主机名（随引用自动生效，无需手动加到 设置→MitM）──
+hostname = helper.2bulu.com
 
-; ── 两步路去广告（tbulu-ads.js）──
-; 规则末尾的 [/?] 是边界，避免前缀误伤
-; （例：不加边界时 /getSplash 会命中 /getSplashFrequencyStatistics）
+; ── 两步路去广告 ──
 
 ; 广告总开关：关闭开屏 + 插屏/弹窗广告（最关键的一条）
-^https?:\/\/helper\.2bulu\.com\/adConfig\/get[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
-
+^https?:\/\/helper\.2bulu\.com\/adConfig\/get[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
 ; 开屏广告（冷启动 + 热启动二次开屏）
-^https?:\/\/helper\.2bulu\.com\/getSplash[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
+^https?:\/\/helper\.2bulu\.com\/getSplash[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 通用广告位
+^https?:\/\/helper\.2bulu\.com\/v9\/advert\/getUniversalAd[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 广告位汇总
+^https?:\/\/helper\.2bulu\.com\/advert\/getAllAdInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 弹窗商品位
+^https?:\/\/helper\.2bulu\.com\/getPopInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 首页信息流中的 A<数字> 推广位
+^https?:\/\/helper\.2bulu\.com\/v9\/home\/feed[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
 
-; 通用广告位 / 广告位汇总 / 弹窗商品位
-^https?:\/\/helper\.2bulu\.com\/v9\/advert\/getUniversalAd[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
-^https?:\/\/helper\.2bulu\.com\/advert\/getAllAdInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
-^https?:\/\/helper\.2bulu\.com\/getPopInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
-
-; 首页信息流：移除 "A<数字>" 推广位
-^https?:\/\/helper\.2bulu\.com\/v9\/home\/feed[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js

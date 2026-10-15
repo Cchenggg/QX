@@ -1,0 +1,32 @@
+; ===================================================================
+; 两步路 / 户外助手 去广告 — 重写片段
+;
+; 【用法】QX → 设置 → 重写 → 引用 → 添加，填：
+;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
+;
+; 【注意】本文件是纯规则列表，不含 [section] 标题。
+; 不要引用 .conf 配置文件，否则 QX 会报 Invalid Line [rewrite_local]。
+; 不要用 github.com/.../blob/... 网页地址，会报 Invalid Line<!DOCTYPE html>。
+;
+; 此文件由 build.js 从 apps/*.js 生成，请勿手动修改。
+; 来源：apps/tbulu.js
+; ===================================================================
+
+; ── MITM 主机名（随引用自动生效，无需手动加到 设置→MitM）──
+hostname = helper.2bulu.com
+
+; ── 两步路去广告 ──
+
+; 广告总开关：关闭开屏 + 插屏/弹窗广告（最关键的一条）
+^https?:\/\/helper\.2bulu\.com\/adConfig\/get[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 开屏广告（冷启动 + 热启动二次开屏）
+^https?:\/\/helper\.2bulu\.com\/getSplash[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 通用广告位
+^https?:\/\/helper\.2bulu\.com\/v9\/advert\/getUniversalAd[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 广告位汇总
+^https?:\/\/helper\.2bulu\.com\/advert\/getAllAdInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 弹窗商品位
+^https?:\/\/helper\.2bulu\.com\/getPopInfo[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+; 首页信息流中的 A<数字> 推广位
+^https?:\/\/helper\.2bulu\.com\/v9\/home\/feed[/?] url script-response-body https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/apps-scripts/tbulu-ads.js
+

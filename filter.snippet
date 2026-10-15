@@ -1,21 +1,18 @@
 ; ===================================================================
-; 两步路去广告 — Quantumult X 过滤器引用片段
+; 多 App 去广告 — 过滤器聚合片段（1 个 App）
 ;
 ; 【用法】QX → 设置 → 过滤器 → 引用 → 添加，填：
-;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/filter.snippet
+;   https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet
 ;
-; 【注意】引用文件里不能出现 [filter_local] 这类 section 标题，
-; 否则 QX 会报 Invalid Line。本文件是纯规则列表。
+; 【注意】本文件是纯规则列表，不含 [section] 标题。
+; 不要引用 .conf 配置文件，否则 QX 会报 Invalid Line [rewrite_local]。
+; 不要用 github.com/.../blob/... 网页地址，会报 Invalid Line<!DOCTYPE html>。
 ;
-; host reject 是 DNS 层拦截（QX 对该域名返回 127.0.0.1），
-; 不需要 MITM。这是「开屏/弹窗跳转第三方 App」的根治办法：
-; 广告素材由第三方联盟 SDK 下发，域名被 reject 后 SDK 永远拿不到
-; 可跳转的素材。
-;
-; 重写规则见 rewrite.snippet。
+; 此文件由 build.js 从 apps/*.js 生成，请勿手动修改。
+; 来源：apps/tbulu.js
 ; ===================================================================
 
-; ── 两步路去广告：广告联盟域名 ──
+; ── 两步路去广告：广告联盟域名拦截 ──
 
 ; 开屏/插屏广告素材与投放（最关键：快手联盟，抓包里的创意图来源）
 host, p66-ad.adkwai.com, reject
@@ -56,6 +53,7 @@ host, report2.dhsz.cn, reject
 host, im-x.jd.com, reject
 host, api.ocpx.ydmob.com, reject
 
-; 注：sdk.e.qq.com / tk.anythinktech.com / ujoy.anythinktech.com /
-;     adx-bj.anythinktech.com / da.statisticslinks.com 多为 SDK 上报接口，
-;     拦不拦都不影响去广告效果，故默认放行，少拦一点更稳。
+; 明确放行（不拦截）：
+; sdk.e.qq.com / tk.anythinktech.com / ujoy.anythinktech.com / adx-bj.anythinktech.com / da.statisticslinks.com
+; 原因：均为 SDK 上报接口，拦不拦都不影响去广告效果，少拦一点更稳。
+

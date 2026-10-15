@@ -112,6 +112,23 @@ function handleFeed(resp) {
 }
 
 /* ------------------------------------------------------------------ *
+ * 契约声明（勿删）
+ *
+ * 本脚本守卫的路径列表，必须与 apps/tbulu.js 里 rewrites[].path 一一对应。
+ * tests/test-script-contract.js 会解析这一行做交叉校验，
+ * 防止「规则改了但脚本没改」的静默失效。
+ * ------------------------------------------------------------------ */
+
+const MATCH_PATHS = [
+  "/adConfig/get",
+  "/getSplash",
+  "/v9/advert/getUniversalAd",
+  "/advert/getAllAdInfo",
+  "/getPopInfo",
+  "/v9/home/feed",
+];
+
+/* ------------------------------------------------------------------ *
  * 入口（由 url script-response-body 触发）
  * ------------------------------------------------------------------ */
 
@@ -135,6 +152,12 @@ function handleFeed(resp) {
     path = path.split("?")[0].split("#")[0];
   } catch (e) {
     path = "";
+  }
+
+  // 守卫：不在 MATCH_PATHS 内一律放行（契约与实现一致）
+  if (MATCH_PATHS.indexOf(path) === -1) {
+    console.log(TAG + " 未匹配的路径，跳过: " + path);
+    return $done({});
   }
 
   switch (path) {

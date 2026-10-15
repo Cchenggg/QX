@@ -1,217 +1,179 @@
-# 两步路去广告 — Quantumult X
+# 多 App 去广告 — Quantumult X
 
-针对「两步路 / 户外助手」(`lolaage.2bulu.zhushou`) 的去广告规则与脚本。
+针对多个 App 的 Quantumult X 去广告规则与脚本集合。
 
-解决的痛点：**开屏和弹窗广告极易误触、直接跳转第三方 App**（有赞商城、App Store、京东等）。
-
-- 适配版本：iOS **9.2.7**（2026-10-15 抓包）
-- 脚本清单：[`SCRIPTS.md`](SCRIPTS.md)
+**统一入口**：加两条引用即可覆盖清单里所有 App。以后新增 App，你的引用不用改。
 
 ---
 
-## 一、安装（5 分钟）
+## 一、快速开始
 
-### 步骤 1：把配置加进 QX
-
-两种方式任选，**推荐引用模式**（配一次，以后规则更新自动同步）。
-
-#### 方式 A：引用模式（推荐）
+在 QX 里添加两条引用。
 
 | 位置 | 地址 |
 |---|---|
-| 设置 → **重写** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.snippet` |
-| 设置 → **过滤器** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/filter.snippet` |
+| 设置 → **重写** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet` |
+| 设置 → **过滤器** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet` |
 
-`rewrite.snippet` 里已含 `hostname = helper.2bulu.com, utility.2bulu.com`，
-引用后 MITM 主机名自动生效，不用再手动加。
+**为什么是两条而不是一条？** 这是 QX 的限制，不是本仓库的设计选择：
+`[rewrite_remote]` 只能装重写规则，`[filter_remote]` 只能装过滤器规则，
+两者无法合并到一个文件里被引用。所以"统一入口"做到的是
+**两条引用覆盖全部 App**，而不是物理上一个文件。
 
-#### 方式 B：手动追加
+### MITM 证书（漏这步脚本一定不生效）
 
-打开 **QX → 设置 → 配置文件 → 点当前配置右侧 `⋯` → 编辑**，把
-[`rewrite.conf`](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf)
-里的内容按下面方式合并：
+`AdBlock-All.snippet` 里带了 `hostname` 行，引用后 MITM 主机名会**自动生效**，
+不需要手动往 设置 → MitM 里加。
 
-| 段落              | 怎么加                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `[rewrite_local]` | 把 6 条规则贴进去（你的配置里通常已有这个 section，**只贴规则行，别重复写 section 标题**） |
-| `[filter_local]`  | 同上，贴 31 条 `host, 域名, reject`                                                        |
-| `[mitm]`          | 把 `hostname` 那行**追加**到已有的 hostname 后面，**不要覆盖**                             |
-
-> **推荐：引用模式**（改规则后 QX 自动同步，不用再手动贴）
-> ⚠️ **引用模式的两个常见报错**（都跟地址格式有关）：
->
-> | 报错 | 原因 | 正确做法 |
-> |---|---|---|
-> | `Invalid Line<!DOCTYPE html>` | 用了 `github.com/.../blob/...` 网页地址，QX 拿到 258KB HTML | 改用 `raw.githubusercontent.com` 地址 |
-> | `Invalid Line [rewrite_local]` | 引用了含 `[section]` 标题的完整配置文件 | 引用**纯规则**片段（`.snippet`），别引用 `.conf` |
->
-> 依据：QX 官方 [sample-import-rewrite.snippet](https://github.com/crossutility/Quantumult-X/blob/master/sample-import-rewrite.snippet)
-> 里只有规则行和可选的 `hostname` 行，没有任何 `[section]` 标题。
-
-保存后 QX 会提示重新加载配置，确认。
-
-### 步骤 2：安装并信任 MITM 证书
-
-**这步漏了脚本一定不生效，是 90% 的人失败的原因。**
+但证书本身要装：
 
 1. QX → 设置 → MitM → 生成证书 → 允许安装描述文件
 2. 系统 设置 → 通用 → VPN与设备管理 → 安装该描述文件
-3. **系统 设置 → 通用 → 关于本机 → 证书信任设置 → 打开 Quantumult X 的开关** ← 关键
+3. **系统 设置 → 关于本机 → 证书信任设置 → 打开 Quantumult X 的开关** ← 关键
 4. 回到 QX → 设置 → MitM → 打开 MitM 开关
 
-### 步骤 3：验证
+---
 
-打开 QX 的 **抓包（HTTP 抓包）**，完全退出两步路后重新打开，检查两处：
+## 二、支持清单
 
-**① `adConfig/get` 的响应**应为 `"splashAd":{"on":false,...,"adList":[]}`
+| App | 平台 | 适配版本 | 去广告范围 | 单 App 引用 |
+|---|---|---|---|---|
+| 两步路 / 户外助手 | iOS | 9.2.7 | 开屏、插屏/弹窗、信息流推广位、各广告位 + 31 个广告联盟域名拦截 | [重写](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet) / [过滤](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet) |
 
-**② QX 日志**（设置 → 日志）应出现：
+> 只要能抓到明文 JSON 响应且无响应体签名的接口，就能加进来。
+
+### 只想要某一个 App？
+
+用单 App 引用替代聚合引用（二选一，别同时加）：
 
 ```
-[2bulu-ads] 已关闭 splashAd / interstitialAd
+重写：  https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
+过滤器：https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet
 ```
-
-看到这两条就成功了。
 
 ---
 
-## 二、脚本清单
+## 三、手动导入（不用引用功能）
 
-完整清单（含每个脚本处理的接口、配套规则、MITM 域名）见 **[`SCRIPTS.md`](SCRIPTS.md)**。
+不想用引用机制的话，把
+[`AdBlock-All.conf`](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.conf)
+的内容复制到 QX → 设置 → 配置文件 → `⋯` → 编辑 里，按段落合并：
 
-| 脚本           | 用途                                                            |
-| -------------- | --------------------------------------------------------------- |
-| `tbulu-ads.js` | 两步路去广告：关开屏/插屏广告开关、清空广告位、过滤信息流推广位 |
+| 段落 | 怎么加 |
+|---|---|
+| `[rewrite_local]` | 贴规则行，**别重复写 section 标题** |
+| `[filter_local]` | 贴 `host, 域名, reject` 行 |
+| `[mitm]` | 把 `hostname` **追加**到已有的后面，不要覆盖 |
 
-**新增脚本只改两个地方**：`SCRIPTS.md` 加一行，`rewrite.conf` 加对应规则。详细步骤见 SCRIPTS.md 末尾。
-
----
-
-## 三、地址选择（重要）
-
-所有脚本地址**默认用 `gh-proxy.com` 前缀代理**，因为实测 `raw.githubusercontent.com` 在国内直连极不稳定：
-
-| 地址                                            | 直连表现                  | 结论                     |
-| ----------------------------------------------- | ------------------------- | ------------------------ |
-| `https://gh-proxy.com/`                         | 200/200/200，0.7~1.3s     | **默认推荐**             |
-| `https://ghfast.top/`                           | 200/200/200，1.1~1.4s     | 等价替代                 |
-| `https://cdn.jsdelivr.net/gh/Cchenggg/QX@main/` | 200/200/200，0.4~1.0s     | 等价替代（路径格式不同） |
-| `https://raw.githubusercontent.com/`            | **000/000/200，15s 超时** | 仅 QX 走代理时可用       |
-
-已验证四种地址返回的内容 SHA256 与仓库文件**完全一致**。
-
-**如果你的 QX 里 GitHub 走代理**（可在 QX 里测：访问 `https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js` 能否打开），
-可以把 `rewrite.conf` 里所有 `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/`
-整体替换成 `https://raw.githubusercontent.com/Cchenggg/QX/main/`，更快更直接。
+⚠️ `.conf` 文件**不能用于引用**（含 `[section]` 标题，会报错），只适合手动导入。
 
 ---
 
 ## 四、排查
 
-| 现象                     | 处理                                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| 日志里没有 `[2bulu-ads]` | ① MITM 证书**信任开关**没开（最常见）② 重写规则没加载 ③ 脚本地址拉不到，在 QX 里手动打开那个脚本地址试试 |
-| 脚本地址打不开           | 换前缀，见上方「地址选择」                                                                               |
-| 有日志但开屏广告还在     | `getSplash` 走了 QUIC 绕过 MITM，见下方「已知限制」                                                      |
-| 两步路功能异常           | 把 `[filter_local]` 全部规则注释掉重启 App 复测，确认是不是拦多了                                        |
-| App 升级后失效           | 重新抓包比对 `adConfig/get` 字段，可能要调整脚本                                                         |
+### 两个经典报错
+
+| 报错 | 原因 | 正确做法 |
+|---|---|---|
+| `Invalid Line<!DOCTYPE html>` | 用了 `github.com/.../blob/...` 网页地址，QX 拿到的是 258KB HTML | 用 `raw.githubusercontent.com` 地址 |
+| `Invalid Line [rewrite_local]` | 引用了含 `[section]` 标题的 `.conf` 完整配置 | 引用 `.snippet` 纯规则片段 |
+
+依据：QX 官方 [sample-import-rewrite.snippet](https://github.com/crossutility/Quantumult-X/blob/master/sample-import-rewrite.snippet)
+里只有规则行和可选的 `hostname` 行，没有任何 `[section]` 标题。
+
+### 其他现象
+
+| 现象 | 处理 |
+|---|---|
+| 脚本没生效，日志无标签输出 | ① MITM **证书信任开关**没开（最常见）② 引用没加载 ③ 脚本地址拉不到 |
+| 引用地址打不开 | 换前缀：`gh-proxy.com` → `ghfast.top`，见下 |
+| 有日志但开屏广告还在 | 该 App 的 `getSplash` 走了 QUIC 绕过 MITM，见「已知限制」 |
+| 某 App 功能异常 | 把该 App 的 filter 域名注释掉复测，确认是否拦多了 |
+| App 升级后失效 | 重新抓包比对接口字段，可能要调整脚本 |
+
+### 地址选择
+
+所有脚本与片段地址默认用 `gh-proxy.com` 前缀代理，因为实测
+`raw.githubusercontent.com` 国内直连**不稳定**：
+
+| 地址 | 直连成功率 | 延迟 |
+|---|---|---|
+| `https://gh-proxy.com/` | 6/6 | 0.7~1.3s |
+| `https://ghfast.top/` | 6/6 | 1.1~1.4s |
+| `https://raw.githubusercontent.com/` | 5/6（失败卡 15s） | — |
+
+若确定 QX 里 GitHub 走代理，可把所有 `https://gh-proxy.com/https://raw.githubusercontent.com/`
+替换为 `https://raw.githubusercontent.com/`。
+
+### 更新机制
+
+QX 对远程资源的默认同步间隔是 **86400 秒（24 小时）**。
+想立即更新：QX → 设置 → 重写/过滤器 → 左滑对应条目 → 手动更新。
 
 ---
 
-## 五、原理（了解即可）
+## 五、已知限制
 
-抓包发现 `GET https://helper.2bulu.com/adConfig/get` 返回的是**明文 JSON、无响应体签名**
-（只有请求带 `psign`），所以可以安全改写。原始响应：
-
-```json
-{
-  "errCode": "0",
-  "data": {
-    "splashAd": {
-      "on": true,
-      "dailyMaxDisplayCount": 10,
-      "randomDisplay": false,
-      "adList": [
-        { "adType": "taku", "num": 3, "index": 0 },
-        { "adType": "2bulu", "num": 1, "index": 1 }
-      ],
-      "hotStart": { "on": true, "displayInterval": 120000 }
-    },
-    "interstitialAd": {
-      "on": true,
-      "dailyMaxDisplayCount": 3,
-      "hotStart": null
-    }
-  }
-}
-```
-
-| 字段                                                    | 含义                                       |
-| ------------------------------------------------------- | ------------------------------------------ |
-| `splashAd.on = true`                                    | 开屏广告开启                               |
-| `adList: taku×3 + 2bulu×1`                              | 开屏 3 次走 TopOn 联盟素材、1 次走自家素材 |
-| `splashAd.hotStart.on=true`<br>`displayInterval=120000` | **热启动二次开屏**，间隔 2 分钟            |
-| `interstitialAd.on = true`                              | 插屏 / 弹窗广告开启                        |
-
-真实时间线（对应「冷启动 → 开屏 → 我的 → 弹窗」）：
-
-```
-01:23:58  冷启动  adConfig/get → getSplash → saveSplashFrequencyStatistics
-01:24:00  开屏广告展示
-01:24:05  切到"我的" → getPopInfo / 各广告 SDK 上报
-01:24:06  首页信息流加载，第一条就是推广位：
-          {"id":"A157","type":1,"link":{"url":"https://shop45920354.m.youzan.com/..."}}
-01:24:08  二次开屏 getSplash → 紧接着 43 个有赞商城请求 = 已经跳走了
-```
-
-**结论**：跳转落地页是有赞商城；广告**素材**来自快手联盟 `p66-ad.adkwai.com`。
-所以方案分两层——关开关（脚本改写）+ 掐断素材来源（域名 reject）。
-
-原始抓包索引归档在 [`docs-har-index.tsv`](docs-har-index.tsv)，
-以后接口变化时可用来比对排查。
-
----
-
-## 六、设计说明（改脚本前先看）
-
-1. **域名拦截用 `[filter_local]` 的 `host, xxx, reject`，不用脚本拦截。**
-   依据 [QX 官方 sample.conf](https://github.com/crossutility/Quantumult-X/blob/master/sample.conf)：
-   `The reject action will return DNS response with 127.0.0.1 to the query.`
-   它是 **DNS 层**拦截，**不需要 MITM**、也不用写进 `hostname`。
-   这样 MITM 范围只剩必要域名，最小最安全，也不会被 SDK 证书校验绕过。
-
-2. **脚本只做响应体改写，不含拦截逻辑。**
-   遇到非目标 URL 或无响应体时一律 `$done({})` 原样放行，绝不误吞正常请求。
-
-3. **路径必须精确匹配，不能前缀匹配。**
-   `/getSplash` 是 `/getSplashFrequencyStatistics` 的前缀，用 `indexOf` 会误伤。
-   规则加 `[/?]` 边界、脚本内按 pathname 精确等值，两头都防。`test.js` 有回归用例。
-
----
-
-## 七、已知限制
-
-**`getSplash` 的响应体在抓包里是空的**（`"text":""`, `bodySize:0`）。
-抓包时 App 走的是 HTTP/3 (QUIC)（HAR 里可见 `sdkquic.e.qq.com`），QX 没抓到响应体。
-所以脚本对它做的是「返回空列表」的稳妥处理，**不保证客户端一定接受**——
+**`getSplash` 类接口可能走 HTTP/3 (QUIC) 绕过 MITM**。
+两步路的抓包里能看到 `sdkquic.e.qq.com`，其 `getSplash` 响应体 QX 没抓到。
+脚本对它做的是「返回空列表」的稳妥处理，**不保证客户端一定接受**——
 真正的兜底是 `adConfig` 关开关 + 域名 reject 两层。
 
-如果开屏广告仍在，说明 `getSplash` 走 QUIC 绕过了 MITM，可尝试：
-
-- 在 QX `[general]` 加 `udp_drop_list = QUIC`（让 App 回落 TCP，MITM 才能生效）
-  注意这是**全局设置**，可能影响其他 App 的 QUIC 性能。
-- 或关掉 QX 里 HTTP/3 相关开关。
+若开屏广告仍在，可尝试在 QX `[general]` 加 `udp_drop_list = QUIC`
+（让 App 回落 TCP，MITM 才能生效）。注意这是**全局设置**，可能影响其他 App 的 QUIC 性能。
 
 **脚本拦不住的**：App 通过 URL Scheme / `LSApplicationWorkspace` 直接唤起第三方 App
-的行为不走网络。但只要广告素材被 reject，就没有可点击的广告，也就无从唤起。
+的行为不走网络。但只要广告素材域名被 reject，就没有可点击的广告，也就无从唤起。
 
 ---
 
-## 八、本地测试
+## 六、给维护者
 
-```powershell
-node test.js
+### 仓库结构
+
+```
+apps/              每个 App 一个定义文件 ← 唯一事实来源
+apps-scripts/      QX 脚本 + 配套 fixtures
+src/               manifest 与渲染/解析工具
+tests/             四层校验
+docs/<app>/        抓包证据（har-index.tsv）
+dist/              构建产物（勿手改）
+build.js           构建
 ```
 
-用抓包真实 JSON 覆盖 31 项断言：开关关闭、列表清空、推广位过滤、
-路径边界回归、非目标 URL 不误伤、无响应体安全放行、异常 JSON 容错。
+### 常用命令
+
+```bash
+node build.js              # 从 apps/ 生成 dist/ 与根目录别名
+node build.js --check      # 校验 dist/ 与 apps/ 一致（CI 用）
+node tests/run-all.js      # 四层离线校验
+node tests/run-all.js --online   # 追加线上链接校验
+npm run verify             # build:check + test
+```
+
+### 新增一个 App
+
+见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`apps/_schema.md`](apps/_schema.md)。概要：
+
+1. 写 `apps/<app-id>.js`（复制 `apps/tbulu.js` 改）
+2. 写 `apps-scripts/<name>.js` 与同名 `.fixtures.js`
+3. 抓包索引放进 `docs/<app-id>/har-index.tsv`
+4. `npm run verify` 必须全绿
+
+### 四层校验在防什么
+
+| 层 | 文件 | 防的问题 |
+|---|---|---|
+| 1 | `test-snippet-format.js` | 两个 `Invalid Line` 报错复发、兼容别名漂移 |
+| 2 | `test-rules.js` | 正则不可编译、前缀误伤（`/getSplash` 命中 `/getSplashFrequencyStatistics`）、规则互相遮蔽、域名重复/冲突 |
+| 3 | `test-script-contract.js` | 规则改了脚本没改（静默失效）、脚本改了规则没改、改写结果不对 |
+| 4 | `test-evidence.js` | **域名拼写错误**（如 `guangtuikeji` 打成 `guangtuakeji`，拦不住任何东西且不报错）、链接失效、线上内容与仓库不一致 |
+
+每条规则的边界面（`[\/?]`）与脚本内的路径守卫都由构建与校验强制，**不在 App 定义里手写正则**。
+
+---
+
+## 七、免责声明
+
+本项目仅用于个人学习与减少干扰性广告，所有规则基于公开抓包整理。
+请勿用于商业用途。使用风险自负。

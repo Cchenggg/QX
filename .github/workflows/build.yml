@@ -1,0 +1,42 @@
+name: build & verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # dist/ 必须与 apps/*.js 一致。
+      # 改了 apps/ 却没重新构建 —— 这里就会失败。
+      - name: 构建一致性校验
+        run: node build.js --check
+
+      # 四层离线校验：
+      #   格式（防两个 Invalid Line 复发）/ 规则 / 脚本契约 / 抓包证据
+      - name: 离线校验
+        run: node tests/run-all.js
+
+  online:
+    # 线上链接校验放单独 job：它依赖公网，失败不应阻塞合并
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 线上链接校验
+        run: node tests/run-all.js --online

@@ -2,6 +2,13 @@
 # （QX 解析配置文件、Node 跑脚本都更适合 LF）
 * text=auto eol=lf
 
+# dist/ 是构建产物，内容必须与 build.js 输出逐字节一致，
+# 不做任何换行归一化，否则 build.js --check 会假失败。
+dist/** -text
+rewrite.snippet -text
+filter.snippet -text
+rewrite.conf -text
+
 # 二进制文件不做换行转换
 *.png binary
 *.jpg binary
