@@ -25,6 +25,7 @@ const { ROOT, files } = (() => {
   return { ROOT: manifest.ROOT, files: manifest.FILES };
 })();
 const { distUrl } = require("../src/manifest");
+const { hasHtmlOutsideComments } = require("../src/lib/parse");
 
 const TIMEOUT_MS = 15000;
 const SLOW_MS = 6000;
@@ -130,7 +131,9 @@ async function main() {
         hardFail++;
         continue;
       }
-      if (/<!DOCTYPE|<html/i.test(res.body)) {
+      // 用「非注释行」检测：片段头部的使用说明里本身就有 HTML 相关字样，
+      // 对整篇做朴素匹配会把自己的警告误判成 HTML（踩过这个坑）。
+      if (hasHtmlOutsideComments(res.body)) {
         t.check(`${item.rel} 不是 HTML`, false, "返回了网页内容，地址前缀可能有误");
         continue;
       }
@@ -150,7 +153,12 @@ async function main() {
     const blobUrl = `https://github.com/Cchenggg/QX/blob/main/dist/${files.allSnippet}`;
     const res = await fetchText(blobUrl);
     if (res.status === 200) {
-      t.check("blob 地址返回 HTML（符合预期，不可用于引用）", /<!DOCTYPE|<html/i.test(res.body), "blob 竟然没返回 HTML，需重新评估文档说明");
+      // 这里故意用朴素检测：blob 返回的就是真实 HTML 页面，没有注释头
+      t.check(
+        "blob 地址返回 HTML（符合预期，不可用于引用）",
+        /<!DOCTYPE|<html/i.test(res.body),
+        "blob 竟然没返回 HTML，需重新评估文档说明"
+      );
     } else {
       t.warn(`blob 校验跳过（status=${res.status} ${res.error || ""}），不影响主流程`);
     }

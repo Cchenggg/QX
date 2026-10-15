@@ -78,7 +78,8 @@ function renderSnippet({ title, usage, apps, hostname = [], kind = "rewrite", di
   L.push(";");
   L.push("; 【注意】本文件是纯规则列表，不含 [section] 标题。");
   L.push("; 不要引用 .conf 配置文件，否则 QX 会报 Invalid Line [rewrite_local]。");
-  L.push("; 不要用 github.com/.../blob/... 网页地址，会报 Invalid Line<!DOCTYPE html>。");
+  L.push("; 不要用 github.com/.../blob/... 网页地址（那是给人看的 HTML 页面），");
+  L.push("; 否则 QX 会报 Invalid Line（读到网页首行的 DOCTYPE）。必须用 raw 地址。");
   L.push(";");
   L.push(`; ${FILES.generatedBy}`);
   L.push(`; 来源：${apps.map((a) => `apps/${a.id}.js`).join(", ")}`);
