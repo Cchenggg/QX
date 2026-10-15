@@ -19,11 +19,53 @@
 
 | App | 平台 | 适配版本 | 重写规则 | 拦截域名 | MITM 域名 |
 |---|---|---|---|---|---|
+| 百度网盘 | ios | 13.35.2 | 2 | 16 | 1 |
 | 两步路 / 户外助手 | ios | 9.2.7 | 6 | 31 | 1 |
 
 ---
 
 ## 各 App 明细
+
+### 百度网盘
+
+- **id**：`baidu-netdisk`　**包名**：`com.baidu.netdisk`
+- **适配版本**：ios 13.35.2　**抓包日期**：2026-10-15
+- **定义文件**：[apps/baidu-netdisk.js](apps/baidu-netdisk.js)
+- **抓包证据**：[docs/baidu-netdisk/har-index.tsv](docs/baidu-netdisk/har-index.tsv)
+
+**单 App 引用**（可选，替代聚合引用）：
+
+```
+重写：  https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/baidu-netdisk.snippet
+过滤器：https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/baidu-netdisk-filter.snippet
+```
+
+**处理的接口**：
+
+| 接口路径 | 动作 | 说明 |
+|---|---|---|
+| `undefined` | reject | 开屏广告素材（严浩翔/贺峻霖 PNG + 素材包 plane_v5.zip）。实测该路径下 32 个 URL 100% 是开屏素材；注意同域的搜索图标也用 /febos/staticsns/amis/ 前缀，无法用路径区分（该图标在 973 条抓包中出现 0 次，代价可接受，见 tests） |
+| `undefined` | reject | 开屏素材的 CDN 代理路径 /e/（主机带 :19001 端口）。⚠️ 绝不能拦该域名的 /b/ 路径 —— 那是 App 渲染引擎 render_resourcd.zip(242MB)，拦了会破坏预览功能 |
+
+**拦截的广告域名**：
+
+- 百度自有广告框架（AFD）：广告决策入口与上报
+  - `afd.baidu.com`、`mobads.baidu.com`、`mobads-logs.baidu.com`
+- 广告聚合 / 竞价平台（「摇一摇跳京东」的决策链路）
+  - `api-v3.mentamob.com`、`api-nxs-v4.mentamob.com`、`bid-adx2.vlion.cn`、`bj-td-menta-01-callback.advlion.com`、`adx-cfg-u1.ubixioe.com`
+- 第三方广告素材与联盟
+  - `p1-lm.adukwai.com`、`tstatic.66mobi.com`、`im-x.jd.com`、`ssdkauth.hpplay.cn`、`mobads-pre-config.cdn.bcebos.com`
+- 广告归因 SDK（AppLovin）
+  - `1qojio.skadsdkless.appsflyersdk.com`、`1qojio.launches.appsflyersdk.com`、`1qojio.inapps.appsflyersdk.com`
+
+**明确放行**（不拦截）：`pan.baidu.com`、`update.pan.baidu.com`、`staticsns.cdn.bcebos.com`、`staticplat.cdn.bcebos.com`、`pop.pcsnetwork.netdisk.baidu.com`、`als.baidu.com`、`usr-api.yunxish.com`、`sp0.baidu.com`
+> 原因：均为网盘核心功能或统计上报；其中 bcebos 是功能 CDN，antpcdn 整域含 242MB 渲染引擎，故对这些域名只做精确路径拦截（见 rewrites），不做整域 reject。
+
+**MITM 主机名**：`pan.baidu.com`
+
+**脚本**：　日志标签 `[baidu-netdisk-ads]`
+
+---
 
 ### 两步路 / 户外助手
 

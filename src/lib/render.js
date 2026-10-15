@@ -25,25 +25,79 @@ function compileRewriteRegex(host, apiPath) {
   return `^https?:\\/\\/${esc(host)}${body}[/?]`;
 }
 
+/**
+ * 编译 URL 前缀规则的正则。
+ *
+ * 用于「同一域名下只有部分路径是广告」的场景 —— 例如百度网盘的 CDN
+ * proxy 域名同时承载开屏素材(/e/)与 App 渲染引擎(/b/render_resourcd.zip)，
+ * 整域拦截会误伤核心功能，必须按路径精确切分。
+ *
+ * 占位符（先分段转义再拼接，避免 esc() 把占位符本身转义掉）：
+ *   {OPT_SUB} 可选子域名        → (?:[^/]*\.)?
+ *   {ANY}     单层任意段        → [^/]*
+ *   {ANYDIR}  多层任意目录段    → (?:[^/]*\/)*
+ *   {HOST}    任意主机名        → [^/]+
+ *
+ * ⚠️ 不要在模式里直接写正则语法（括号、? 、* 等）—— 会被 esc() 转义成字面量。
+ *    需要什么结构就用对应占位符。
+ */
+const PLACEHOLDER = /(\{OPT_SUB\}|\{ANYDIR\}|\{ANY\}|\{HOST\})/;
+
+function compilePrefixRegex(hostPattern, urlPattern, stopAfter) {
+  const expand = (s) =>
+    s
+      .split(PLACEHOLDER)
+      .map((part) => {
+        if (part === "{OPT_SUB}") return "(?:[^/]*\\.)?";
+        if (part === "{ANYDIR}") return "(?:[^/]*\\/)*";
+        if (part === "{ANY}") return "[^/]*";
+        if (part === "{HOST}") return "[^/]+";
+        return esc(part);
+      })
+      .join("");
+
+  let re = "^https?:\\/\\/";
+  re += expand(hostPattern);
+  // 主机名后允许可选端口（素材 CDN 形如 xxx.antpcdn.com:19001）
+  if (!/\$$/.test(urlPattern) && urlPattern !== "") re += "(?::\\d+)?";
+  re += expand(urlPattern);
+  // 默认允许后面还有内容（只锚定开头，做成前缀匹配）；
+  // stopAfter:true 时才要求 URL 在此结束，用于精确到某个端点的场景。
+  if (stopAfter) re += "(?:\\?|$)";
+  return re;
+}
+
 /** 展开某个 App 的重写规则 → 文本行数组 */
 function rewriteLines(app, distUrl) {
   const out = [];
   for (const r of app.rewrites || []) {
-    for (const host of app.hosts || []) {
-      const regex = compileRewriteRegex(host, r.path);
-      let line;
-      if (r.action && r.action.startsWith("script-")) {
-        // 远程片段里的脚本路径必须是绝对 URL，相对路径 QX 解析不到
-        line = `${regex} url ${r.action} ${distUrl(`apps-scripts/${r.script}`)}`;
-      } else if (r.action === "reject") {
-        line = `${regex} url reject`;
-      } else {
-        line = `${regex} url ${r.action}${r.target ? " " + r.target : ""}`;
+    // ── 模式 1：host × path（常规接口改写）──
+    if (r.path != null) {
+      for (const host of app.hosts || []) {
+        const regex = compileRewriteRegex(host, r.path);
+        out.push({ line: actionLine(regex, r, distUrl), note: r.note, path: r.path, host });
       }
-      out.push({ line, note: r.note, path: r.path, host });
+      continue;
     }
+    // ── 模式 2：urlPrefix（精确到路径的拦截，用于同域混用场景）──
+    if (r.urlPrefix != null) {
+      const regex = compilePrefixRegex(r.urlPrefix, r.urlPattern || "", r.stopAfter);
+      out.push({ line: actionLine(regex, r, distUrl), note: r.note, urlPattern: r.urlPattern });
+      continue;
+    }
+    throw new Error(`rewrites 项必须含 path 或 urlPrefix：${JSON.stringify(r)}`);
   }
   return out;
+}
+
+/** 把正则 + 动作拼成一行 QX 规则 */
+function actionLine(regex, r, distUrl) {
+  if (r.action && r.action.startsWith("script-")) {
+    // 远程片段里的脚本路径必须是绝对 URL，相对路径 QX 解析不到
+    return `${regex} url ${r.action} ${distUrl(`apps-scripts/${r.script}`)}`;
+  }
+  if (r.action === "reject") return `${regex} url reject`;
+  return `${regex} url ${r.action}${r.target ? " " + r.target : ""}`;
 }
 
 /** 展开某个 App 的域名拦截 → 文本行数组（保留分组注释） */

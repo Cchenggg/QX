@@ -93,12 +93,16 @@ t.section("3. 重写片段必须带 hostname（MITM 随引用生效）");
 // 按文件名判断该片段应覆盖哪些 hostname
 function expectedHosts(rel) {
   const base = path.basename(rel);
-  if (base.startsWith("AdBlock-All")) {
-    return apps.filter((a) => a.enabled !== false).flatMap((a) => a.hosts || []);
+  const enabled = apps.filter((a) => a.enabled !== false);
+
+  if (base === FILES.allSnippet || base === "rewrite.snippet") {
+    // 聚合片段：所有 enabled App 的 hosts 合并去重
+    return [...new Set(enabled.flatMap((a) => a.hosts || []))];
   }
-  const hit = apps.find((a) => base === FILES.appSnippet(a.id) || base === `rewrite.snippet`);
+  // 单 App 片段：只该覆盖自己的
+  const hit = apps.find((a) => base === FILES.appSnippet(a.id));
   if (hit) return hit.hosts || [];
-  return apps.flatMap((a) => a.hosts || []);
+  return [...new Set(apps.flatMap((a) => a.hosts || []))];
 }
 
 for (const rel of [...new Set(snippetFiles)]) {

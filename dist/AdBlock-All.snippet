@@ -1,5 +1,5 @@
 ; ===================================================================
-; 多 App 去广告 — 重写聚合片段（1 个 App）
+; 多 App 去广告 — 重写聚合片段（2 个 App）
 ;
 ; 【用法】QX → 设置 → 重写 → 引用 → 添加，填：
 ;   https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet
@@ -10,11 +10,18 @@
 ; 否则 QX 会报 Invalid Line（读到网页首行的 DOCTYPE）。必须用 raw 地址。
 ;
 ; 此文件由 build.js 从 apps/*.js 生成，请勿手动修改。
-; 来源：apps/tbulu.js
+; 来源：apps/baidu-netdisk.js, apps/tbulu.js
 ; ===================================================================
 
 ; ── MITM 主机名（随引用自动生效，无需手动加到 设置→MitM）──
-hostname = helper.2bulu.com
+hostname = pan.baidu.com, helper.2bulu.com
+
+; ── 百度网盘去广告 ──
+
+; 开屏广告素材（严浩翔/贺峻霖 PNG + 素材包 plane_v5.zip）。实测该路径下 32 个 URL 100% 是开屏素材；注意同域的搜索图标也用 /febos/staticsns/amis/ 前缀，无法用路径区分（该图标在 973 条抓包中出现 0 次，代价可接受，见 tests）
+^https?:\/\/(?:[^/]*\.)?s0-ant\.baidu\.com(?::\d+)?\/febos\/(?:[^/]*\/)* url reject
+; 开屏素材的 CDN 代理路径 /e/（主机带 :19001 端口）。⚠️ 绝不能拦该域名的 /b/ 路径 —— 那是 App 渲染引擎 render_resourcd.zip(242MB)，拦了会破坏预览功能
+^https?:\/\/[^/]*antpcdn\.com(?::\d+)?\/e\/[^/]+\/(?:[^/]*\/)* url reject
 
 ; ── 两步路去广告 ──
 

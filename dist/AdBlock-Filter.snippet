@@ -1,5 +1,5 @@
 ; ===================================================================
-; 多 App 去广告 — 过滤器聚合片段（1 个 App）
+; 多 App 去广告 — 过滤器聚合片段（2 个 App）
 ;
 ; 【用法】QX → 设置 → 过滤器 → 引用 → 添加，填：
 ;   https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet
@@ -10,8 +10,38 @@
 ; 否则 QX 会报 Invalid Line（读到网页首行的 DOCTYPE）。必须用 raw 地址。
 ;
 ; 此文件由 build.js 从 apps/*.js 生成，请勿手动修改。
-; 来源：apps/tbulu.js
+; 来源：apps/baidu-netdisk.js, apps/tbulu.js
 ; ===================================================================
+
+; ── 百度网盘去广告：广告联盟域名拦截 ──
+
+; 百度自有广告框架（AFD）：广告决策入口与上报
+host, afd.baidu.com, reject
+host, mobads.baidu.com, reject
+host, mobads-logs.baidu.com, reject
+
+; 广告聚合 / 竞价平台（「摇一摇跳京东」的决策链路）
+host, api-v3.mentamob.com, reject
+host, api-nxs-v4.mentamob.com, reject
+host, bid-adx2.vlion.cn, reject
+host, bj-td-menta-01-callback.advlion.com, reject
+host, adx-cfg-u1.ubixioe.com, reject
+
+; 第三方广告素材与联盟
+host, p1-lm.adukwai.com, reject
+host, tstatic.66mobi.com, reject
+host, im-x.jd.com, reject
+host, ssdkauth.hpplay.cn, reject
+host, mobads-pre-config.cdn.bcebos.com, reject
+
+; 广告归因 SDK（AppLovin）
+host, 1qojio.skadsdkless.appsflyersdk.com, reject
+host, 1qojio.launches.appsflyersdk.com, reject
+host, 1qojio.inapps.appsflyersdk.com, reject
+
+; 明确放行（不拦截）：
+; pan.baidu.com / update.pan.baidu.com / staticsns.cdn.bcebos.com / staticplat.cdn.bcebos.com / pop.pcsnetwork.netdisk.baidu.com / als.baidu.com / usr-api.yunxish.com / sp0.baidu.com
+; 原因：均为网盘核心功能或统计上报；其中 bcebos 是功能 CDN，antpcdn 整域含 242MB 渲染引擎，故对这些域名只做精确路径拦截（见 rewrites），不做整域 reject。
 
 ; ── 两步路去广告：广告联盟域名拦截 ──
 

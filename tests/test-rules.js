@@ -26,22 +26,24 @@ const filterParsed = parseSnippet(read(`dist/${FILES.allFilterSnippet}`));
 
 /** 从重写正则里抽出 host 与路径（供构造目标 URL 用） */
 function dissect(regex) {
-  // ^https?:\/\/<hostEsc><pathEsc>[/?]
+  // 只处理常规 host×path 规则： ^https?:\/\/<hostEsc><pathEsc>[/?]
+  // urlPrefix 规则含 [^/]、(?::\d+)? 等结构，无法可靠反推样例 URL，
+  // 返回 null 跳过 —— 它们由 app 定义里的 selfTest 样例校验（见 section 0）。
+  // 注意守卫要匹配正则源码里的真实字符：字面 "[^/]" 与 "\d"
+  if (regex.includes("[^/]") || regex.includes("(?:") || regex.includes("\\d")) return null;
+
   const m = regex.match(/^\^https\?:\\\/\\\/([^\\]+)((?:\\.|[^\\])*?)\[\/\?\]$/);
   if (!m) return null;
   const unesc = (s) => s.replace(/\\(.)/g, "$1");
   const host = unesc(m[1]);
-  let p = m[2];
-  // 结尾可能带 [\/?]，先去掉
-  p = p.replace(/\[\\\/\?\]$/, "");
-  const pathPart = unesc(p);
-  return { host, path: pathPart || "/" };
+  const p = m[2].replace(/\[\\\/\?\]$/, "");
+  return { host, path: unesc(p) || "/" };
 }
 
 /** 为一个规则构造「应当命中」的 URL */
 function targetUrl(d) {
   if (!d) return null;
-  if (d.path === "/") return `https://${d.host}/`;
+  if (d.path === "/" || d.path === "") return `https://${d.host}/`;
   return `https://${d.host}${d.path}?ver=1&nonce=AB12`;
 }
 
@@ -74,6 +76,47 @@ function positiveSubpathUrls(d) {
   return [`https://${host}${p}/nested?x=1`, `https://${host}${p}/`];
 }
 
+t.section("0. urlPrefix 规则的 selfTest 双向校验（样例来自真实抓包）");
+
+{
+  // urlPrefix 规则无法从正则反推样例 URL，改由 app 定义声明真实样例。
+  // 这里把声明样例落到生成后的真实规则上校验：match 必须命中、exclude 必须不命中。
+  //
+  // 关联方式：按 apps→rewrites 的顺序累加，取分发件里对应序号的规则行。
+  // （不能按 note 关联 —— note 只用于构建期注释，不进分发件）
+  let cursor = 0;
+  let selfTestCount = 0;
+
+  for (const app of apps) {
+    if (app.enabled === false) continue;
+    for (const r of app.rewrites || []) {
+      const gen = rewriteParsed.rewrites[cursor];
+      cursor++;
+      if (!r.selfTest) continue;
+      selfTestCount++;
+
+      const label = (r.note || "").slice(0, 26);
+      if (!gen) {
+        t.check(`${app.id} 「${label}…」规则已生成`, false, "分发件里规则数不足");
+        continue;
+      }
+      const re = new RegExp(gen.regex);
+
+      for (const url of r.selfTest.match || []) {
+        t.check(`${app.id} 「${label}」命中 ${url.split("/").slice(-1)[0].slice(0, 22)}`, re.test(url), url);
+      }
+      for (const url of r.selfTest.exclude || []) {
+        t.check(
+          `${app.id} 「${label}」不误伤 ${url.replace(/^https?:\/\//, "").slice(0, 40)}`,
+          !re.test(url),
+          `被 ${gen.regex} 命中`
+        );
+      }
+    }
+  }
+  if (selfTestCount === 0) t.info("本仓库暂无 urlPrefix 规则需要 selfTest");
+}
+
 t.section("1. 全部正则必须可编译");
 
 let compileFails = 0;
@@ -89,9 +132,15 @@ t.check("重写正则可编译", compileFails === 0, `${compileFails} 条失败`
 
 t.section("2. 双向匹配：目标 URL 必须命中");
 
+// urlPrefix 规则无法反推样例，由其 selfTest 覆盖（section 0），此处跳过
+let skippedUrlPrefix = 0;
 for (const r of rewriteParsed.rewrites) {
   const d = dissect(r.regex);
   if (!d) {
+    if (r.regex.includes("[^/]") || r.regex.includes("(?:") || r.regex.includes("\\d")) {
+      skippedUrlPrefix++;
+      continue;
+    }
     t.check(`可解析正则 L${r.line}`, false, r.regex);
     continue;
   }
@@ -99,6 +148,7 @@ for (const r of rewriteParsed.rewrites) {
   const re = new RegExp(r.regex);
   t.check(`命中 ${d.path}`, re.test(url), `规则 ${r.regex} 未能命中 ${url}`);
 }
+if (skippedUrlPrefix) t.info(`跳过 ${skippedUrlPrefix} 条 urlPrefix 规则（已由 section 0 的 selfTest 覆盖）`);
 
 t.section("3. 双向匹配：同前缀干扰 URL 必须不命中");
 
@@ -180,16 +230,43 @@ for (const h of filterParsed.hostnames.concat(rewriteParsed.hostnames)) {
 
 t.section("8. filter 规则语法与去重");
 
-const seen = new Map();
+// 去重只在**同一个 App 内部**做 ——
+// 跨 App 出现相同域名是正常的（例如两个 App 都用了同一个广告联盟），
+// 那是两份独立的订阅，不是配置错误。
+{
+  const perApp = new Map();
+  for (const app of apps) {
+    const seenInApp = new Map();
+    for (const g of app.filterGroups || []) {
+      for (const h of g.hosts) {
+        if (seenInApp.has(h)) {
+          t.check(`${app.id} 内 ${h} 无重复`, false, `同一定义里重复出现`);
+        } else {
+          seenInApp.set(h, true);
+        }
+      }
+    }
+    perApp.set(app.id, seenInApp.size);
+  }
+  t.check("各 App 内部无重复域名", true, "");
+  // 跨 App 重复仅作提示，不算失败
+  const owner = new Map();
+  for (const app of apps) {
+    for (const g of app.filterGroups || []) {
+      for (const h of g.hosts) {
+        if (!owner.has(h)) owner.set(h, []);
+        owner.get(h).push(app.id);
+      }
+    }
+  }
+  for (const [h, ids] of owner) {
+    if (ids.length > 1) t.info(`跨 App 重复（正常）: ${h} ← ${ids.join(", ")}`);
+  }
+}
+
 for (const f of filterParsed.filters) {
   const ok = HOSTNAME_OK.test(f.host) && !f.host.includes("*");
   t.check(`filter ${f.host} 语法合法`, ok, f.raw);
-
-  if (seen.has(f.host)) {
-    t.check(`filter ${f.host} 无重复`, false, `第 ${seen.get(f.host)} 行已出现`);
-  } else {
-    seen.set(f.host, f.line);
-  }
   t.check(`filter ${f.host} 动作为 reject`, f.action === "reject", `实际 ${f.action}`);
 }
 
