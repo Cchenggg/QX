@@ -20,8 +20,22 @@
 > https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
 > ```
 >
-> 之后规则改动你在 GitHub 上一提交，QX 自动同步，不用再手动贴。
-> 但 `[mitm]` 的 hostname 仍需手动加（引用不会合并 MITM）。
+> ⚠️ 引用地址**必须用 raw 地址，不能用 `github.com/.../blob/...` 网页地址**：
+>
+> ```
+> ✅ https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
+> ✅ https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf   （QX 里 GitHub 走代理时用）
+> ✅ https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
+> ❌ https://github.com/Cchenggg/QX/blob/main/rewrite.conf
+> ```
+>
+> 用 ❌ 会报 **`Invalid Line<!DOCTYPE html>`**：`blob` 地址是给人看的网页，
+> QX 下载到的是 258KB 的 HTML 页面，解析到第一行 `<!DOCTYPE html>` 就报错。
+> 正确地址返回的是 5585B 配置原文（已核对 SHA256 与仓库文件逐字节一致）。
+>
+> 走引用模式后规则改动你在 GitHub 一提交，QX 自动同步。
+> 但 **`[filter_local]` 的域名拦截和 `[mitm]` 的 hostname 不一定随引用生效**，
+> 保险起见这两段仍按上表手动加一次（加完就不用再管）。
 
 保存后 QX 会提示重新加载配置，确认。
 

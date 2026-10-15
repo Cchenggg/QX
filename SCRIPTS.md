@@ -30,6 +30,17 @@
 
 > 已验证四种地址返回的内容 SHA256 与仓库文件完全一致。
 
+### ⚠️ 别用 `blob` 网页地址
+
+```
+❌ https://github.com/Cchenggg/QX/blob/main/tbulu-ads.js
+✅ https://raw.githubusercontent.com/Cchenggg/QX/main/tbulu-ads.js
+```
+
+`github.com/.../blob/...` 是**给人看的网页**（返回 258KB HTML），QX 拿到后会解析到
+`<!DOCTYPE html>`，报错 **`Invalid Line<!DOCTYPE html>`**。
+引用配置或脚本一律用 `raw.githubusercontent.com` 地址（或它的前缀代理）。
+
 ---
 
 ## 清单
