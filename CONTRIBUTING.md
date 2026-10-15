@@ -2,6 +2,42 @@
 
 本仓库是**多 App 去广告规则集合**。新增一个 App，就是加几个文件、跑通校验。
 
+**使用者请看 [`README.md`](README.md)**；本文是维护者文档。
+
+---
+
+## 零、仓库结构与命令
+
+```
+apps/              每个 App 一个定义文件 ← 唯一事实来源
+apps-scripts/      QX 脚本 + 配套 fixtures
+src/               manifest 与渲染/解析工具
+tests/             四层校验
+docs/<app>/        抓包证据（har-index.tsv）
+dist/              构建产物（勿手改）
+build.js           构建
+```
+
+```bash
+node build.js              # 从 apps/ 生成 dist/ 与根目录兼容别名
+node build.js --check      # 校验 dist/ 与 apps/ 一致（CI 用）
+node tests/run-all.js      # 四层离线校验
+node tests/run-all.js --online   # 追加线上链接校验
+npm run verify             # build:check + test，提交前必跑
+```
+
+### 四层校验在防什么
+
+| 层 | 文件 | 防的问题 |
+|---|---|---|
+| 1 | `test-snippet-format.js` | 两个 `Invalid Line` 报错复发、兼容别名漂移 |
+| 2 | `test-rules.js` | 正则不可编译、前缀误伤（`/getSplash` 命中 `/getSplashFrequencyStatistics`）、规则互相遮蔽、urlPrefix 规则误伤正常流量 |
+| 3 | `test-script-contract.js` | 规则改了脚本没改（静默失效）、脚本改了规则没改、改写结果不对 |
+| 4 | `test-evidence.js` | **域名拼写错误**（如 `guangtuikeji` 打成 `guangtuakeji`，拦不住任何东西且不报错） |
+
+规则的边界面（`[\/?]`）、可选端口、URL 前缀匹配都由构建强制生成，
+**不要在 App 定义里手写正则**。
+
 ---
 
 ## 一、开始之前：确认这个 App 值得做
@@ -105,9 +141,14 @@ README 的「支持清单」表格也由构建产出，**不要手改**。
 | 2 | 域名必须从抓包复制 | `guangtuikeji.com` 打成 `guangtuakeji.com`，规则拦不住任何东西**且不报错** |
 | 3 | 脚本按 pathname 精确匹配 | 同上前缀误伤 |
 | 4 | 引用件不得含 `[section]` 标题 | QX 报 `Invalid Line [rewrite_local]`；用 blob 网页地址则报 `Invalid Line<!DOCTYPE html>` |
+| 5 | urlPrefix 规则必须写 `selfTest` | 拦到正常流量的代价可能极高（百度网盘案例：拦错路径会失去 242MB 渲染引擎 → 预览功能损坏） |
 
 前三条已由构建强制（你在 `apps/*.js` 里写不出正则），第四条由
-`tests/test-snippet-format.js` 固化拦截。
+`tests/test-snippet-format.js` 固化拦截，第五条由 `tests/test-rules.js`
+强制（`selfTest.exclude` 里必须包含同域的正常流量 URL，且断言不被命中）。
+
+> **用 urlPrefix 前的必做功课**：先抓包确认同一域名下**确实**存在必须放行的正常流量。
+> 如果该域名纯粹是广告域名，用 `filterGroups` 整域 reject 更简单也更安全。
 
 ---
 

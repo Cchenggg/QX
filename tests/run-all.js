@@ -22,7 +22,10 @@ const suites = [
   "test-evidence.js",
 ];
 
-if (ONLINE) suites.push("test-links.js");
+if (ONLINE) {
+  suites.push("test-links.js");
+  suites.push("test-doc-links.js");
+}
 
 async function main() {
   if (process.argv.includes("--build")) {
