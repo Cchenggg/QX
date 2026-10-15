@@ -282,7 +282,12 @@ t.section("10. 聚合件必须覆盖所有 enabled App 的规则");
 
 {
   const enabled = apps.filter((a) => a.enabled !== false);
-  const expectRewrites = enabled.reduce((n, a) => n + (a.rewrites || []).length * (a.hosts || []).length, 0);
+  // path 规则按 hosts 展开；urlPrefix 规则每条产出 1 行
+  const expectRewrites = enabled.reduce((n, a) => {
+    const byPath = (a.rewrites || []).filter((r) => r.path != null).length * (a.hosts || []).length;
+    const byPrefix = (a.rewrites || []).filter((r) => r.urlPrefix != null).length;
+    return n + byPath + byPrefix;
+  }, 0);
   const expectFilters = enabled.reduce((n, a) => n + (a.filterGroups || []).reduce((m, g) => m + g.hosts.length, 0), 0);
 
   t.check(

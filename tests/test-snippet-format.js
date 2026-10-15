@@ -115,7 +115,12 @@ for (const rel of [...new Set(snippetFiles)]) {
   const expect = [...new Set(expectedHosts(rel))].sort();
   const actual = [...new Set(p.hostnames)].sort();
 
-  t.check(`${base} 有 hostname 行`, p.hostnames.length > 0);
+  // 该 App 全是 reject 规则时不需要 MITM，hostname 为空是合法的
+  if (expect.length > 0) {
+    t.check(`${base} 有 hostname 行`, p.hostnames.length > 0, `期望覆盖 ${expect.join(", ")}`);
+  } else {
+    t.info(`${base} 无 hostname（该 App 全部规则为 reject，不需要 MITM）`);
+  }
   t.check(
     `${base} hostname 与声明完全一致`,
     JSON.stringify(expect) === JSON.stringify(actual),

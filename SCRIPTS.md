@@ -19,7 +19,7 @@
 
 | App | 平台 | 适配版本 | 重写规则 | 拦截域名 | MITM 域名 |
 |---|---|---|---|---|---|
-| 百度网盘 | ios | 13.35.2 | 2 | 16 | 1 |
+| 百度网盘 | ios | 13.35.2 | 0 | 16 | 0 |
 | 两步路 / 户外助手 | ios | 9.2.7 | 6 | 31 | 1 |
 
 ---
@@ -61,7 +61,7 @@
 **明确放行**（不拦截）：`pan.baidu.com`、`update.pan.baidu.com`、`staticsns.cdn.bcebos.com`、`staticplat.cdn.bcebos.com`、`pop.pcsnetwork.netdisk.baidu.com`、`als.baidu.com`、`usr-api.yunxish.com`、`sp0.baidu.com`
 > 原因：均为网盘核心功能或统计上报；其中 bcebos 是功能 CDN，antpcdn 整域含 242MB 渲染引擎，故对这些域名只做精确路径拦截（见 rewrites），不做整域 reject。
 
-**MITM 主机名**：`pan.baidu.com`
+**MITM 主机名**：
 
 **脚本**：　日志标签 `[baidu-netdisk-ads]`
 

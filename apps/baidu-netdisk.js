@@ -41,8 +41,14 @@ module.exports = {
 
   scripts: [],
 
-  // 只用于 urlPrefix 规则的作用域；域名级拦截见 filterGroups（不需要 MITM）
-  hosts: ["pan.baidu.com"],
+  /*
+   * 本 App 不需要 MITM。
+   *
+   * 全部规则都是 reject（DNS/连接层直接拒绝），没有任何响应体需要解密改写，
+   * 所以 hosts 留空 —— 避免把 pan.baidu.com 拖进 MITM 范围扩大风险面。
+   * （对比：两步路需要改响应体，所以必须 MITM helper.2bulu.com）
+   */
+  hosts: [],
 
   rewrites: [
     // ══════════════════════════════════════════════════════════════
