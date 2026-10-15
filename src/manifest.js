@@ -18,16 +18,18 @@ const repo = {
 };
 
 /*
- * 前缀策略（实测结论见 SCRIPTS.md）：
- *   raw.githubusercontent.com 直连 5/6 成功，失败时卡 15s；
- *   gh-proxy.com / ghfast.top 直连 6/6，0.7~1.4s。
- * 所以默认走 gh-proxy，保证「QX 不走代理」也能拉到。
+ * 前缀策略（实测结论见 README「地址选择」）：
+ *   raw.githubusercontent.com 直连 5/6，失败时卡 15s；
+ *   ghfast.top  直连 6/6，1.1~1.4s，且内容与仓库**即时**同步；
+ *   gh-proxy.com 直连 6/6，但带 60s 的 CDN 缓存（age/max-age=60），
+ *                刚推送后短时间会拿到旧版本，故不作首选。
+ * 默认用 ghfast.top，保证「QX 不走代理」也能拉到，且更新即时。
  */
 const prefix = {
-  mode: "gh-proxy", // "gh-proxy" | "raw"
+  mode: "ghfast", // "ghfast" | "gh-proxy" | "raw"
   proxies: {
-    "gh-proxy": "https://gh-proxy.com/",
     "ghfast": "https://ghfast.top/",
+    "gh-proxy": "https://gh-proxy.com/",
   },
   rawHost: "https://raw.githubusercontent.com",
 };

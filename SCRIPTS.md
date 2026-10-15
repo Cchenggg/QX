@@ -8,8 +8,8 @@
 
 | 用途 | 地址 |
 |---|---|
-| 重写（全部 App） | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet` |
-| 过滤器（全部 App） | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet` |
+| 重写（全部 App） | `https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet` |
+| 过滤器（全部 App） | `https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet` |
 
 只需这两个。单 App 地址见下方各 App 小节。
 
@@ -35,8 +35,8 @@
 **单 App 引用**（可选，替代聚合引用）：
 
 ```
-重写：  https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
-过滤器：https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet
+重写：  https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
+过滤器：https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet
 ```
 
 **处理的接口**：

@@ -27,27 +27,30 @@ const { ROOT, files } = (() => {
 const { distUrl } = require("../src/manifest");
 const { hasHtmlOutsideComments } = require("../src/lib/parse");
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 12000;
 const SLOW_MS = 6000;
+const TOTAL_BUDGET_MS = 8 * 60 * 1000; // 整体时限，防止网络异常时无限挂起
 
-/** 已知可用的 GitHub IP，用于绕过 DNS 污染 */
+/**
+ * 回退 IP：仅在系统 DNS 失败时使用。
+ *
+ * 注意顺序 —— 实测本机「强制指定 185.199.x IP」会 TLS 超时，
+ * 而系统 DNS 解析到同一批 IP 却能正常访问。
+ * 所以必须优先用系统 DNS，把强制 IP 当兜底而不是首选，否则会一直卡住。
+ */
 const FALLBACK_IPS = {
   "raw.githubusercontent.com": ["185.199.108.133", "185.199.109.133", "185.199.110.133", "185.199.111.133"],
-  "gh-proxy.com": [],
-  "ghfast.top": [],
 };
 
-function cacheableLookup(hostname) {
-  const ips = FALLBACK_IPS[hostname];
-  return ips && ips.length ? () => ips : undefined;
-}
+const startedAt = Date.now();
+const budgetLeft = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
 
-/** GET 一次，返回 { status, body, ms, error } */
-function fetchText(url) {
+/** 单次请求 */
+function requestOnce(url, lookup) {
   return new Promise((resolve) => {
     const started = Date.now();
     const u = new URL(url);
-    const lookup = cacheableLookup(u.hostname);
+    const remaining = Math.min(TIMEOUT_MS, Math.max(1000, budgetLeft()));
 
     const req = https.request(
       {
@@ -56,19 +59,15 @@ function fetchText(url) {
         port: u.port || 443,
         path: u.pathname + u.search,
         headers: { "User-Agent": "QX-AdBlock-CI/1.0", Accept: "*/*" },
-        timeout: TIMEOUT_MS,
+        timeout: remaining,
         ...(lookup ? { lookup } : {}),
       },
       (res) => {
         const chunks = [];
         res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          resolve({
-            status: res.statusCode,
-            body: Buffer.concat(chunks).toString("utf8"),
-            ms: Date.now() - started,
-          });
-        });
+        res.on("end", () =>
+          resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString("utf8"), ms: Date.now() - started })
+        );
       }
     );
 
@@ -76,11 +75,28 @@ function fetchText(url) {
       req.destroy();
       resolve({ status: 0, body: "", ms: Date.now() - started, error: "timeout" });
     });
-    req.on("error", (e) => {
-      resolve({ status: 0, body: "", ms: Date.now() - started, error: e.message });
-    });
+    req.on("error", (e) => resolve({ status: 0, body: "", ms: Date.now() - started, error: e.code || e.message }));
     req.end();
   });
+}
+
+/** GET：先系统 DNS，必要时回退到固定 IP；带整体时限 */
+async function fetchText(url) {
+  if (budgetLeft() <= 0) return { status: 0, body: "", ms: 0, error: "总时限已用完，跳过" };
+
+  const first = await requestOnce(url);
+  if (first.status === 200) return first;
+
+  const host = new URL(url).hostname;
+  const ips = FALLBACK_IPS[host];
+  if (!ips) return first;
+
+  for (const ip of ips) {
+    if (budgetLeft() <= 0) break;
+    const retry = await requestOnce(url, () => [ip]);
+    if (retry.status === 200) return retry;
+  }
+  return first;
 }
 
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
@@ -114,8 +130,9 @@ async function main() {
   t.info("");
 
   const modes = [
+    { name: "ghfast(默认)", buildUrl: (rel) => distUrl(rel, "ghfast") },
     { name: "gh-proxy", buildUrl: (rel) => distUrl(rel, "gh-proxy") },
-    { name: "raw", buildUrl: (rel) => distUrl(rel, "raw") },
+    { name: "raw(直连)", buildUrl: (rel) => distUrl(rel, "raw") },
   ];
 
   for (const mode of modes) {
@@ -138,7 +155,20 @@ async function main() {
         continue;
       }
       const same = sha256(res.body.replace(/\r\n/g, "\n")) === sha256(item.local.replace(/\r\n/g, "\n"));
-      t.check(`${item.rel} 内容与本地一致`, same, "线上与本地 dist/ 不一致（可能未提交构建产物）");
+      if (same) {
+        t.check(`${item.rel} 内容与本地一致`, true);
+      } else if (mode.name === "raw(直连)") {
+        // raw 是权威来源，不一致说明 dist/ 没提交或线上不是同一版本 —— 必须失败
+        t.check(`${item.rel} 内容与本地一致`, false, "线上 raw 与本地 dist/ 不一致，可能未提交构建产物");
+      } else {
+        // 前缀代理有 CDN 缓存（gh-proxy 为 max-age=60），刚推送后会短暂滞后。
+        // 这种情况降级为 WARN，避免 CI 因缓存造成假红。
+        const age = res.headers && res.headers.age;
+        t.warn(
+          `${item.rel} 内容与本地不一致（代理缓存，可能滞后 ${age ? age + "s" : "未标注"}）` +
+            ` 线上 ${res.body.length}B / 本地 ${item.local.length}B`
+        );
+      }
 
       if (res.ms > SLOW_MS) t.warn(`${item.rel} 响应较慢 ${res.ms}ms`);
     }

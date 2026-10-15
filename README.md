@@ -12,8 +12,8 @@
 
 | 位置 | 地址 |
 |---|---|
-| 设置 → **重写** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet` |
-| 设置 → **过滤器** → 引用 → 添加 | `https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet` |
+| 设置 → **重写** → 引用 → 添加 | `https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.snippet` |
+| 设置 → **过滤器** → 引用 → 添加 | `https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-Filter.snippet` |
 
 **为什么是两条而不是一条？** 这是 QX 的限制，不是本仓库的设计选择：
 `[rewrite_remote]` 只能装重写规则，`[filter_remote]` 只能装过滤器规则，
@@ -38,7 +38,7 @@
 
 | App | 平台 | 适配版本 | 去广告范围 | 单 App 引用 |
 |---|---|---|---|---|
-| 两步路 / 户外助手 | iOS | 9.2.7 | 开屏、插屏/弹窗、信息流推广位、各广告位 + 31 个广告联盟域名拦截 | [重写](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet) / [过滤](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet) |
+| 两步路 / 户外助手 | iOS | 9.2.7 | 开屏、插屏/弹窗、信息流推广位、各广告位 + 31 个广告联盟域名拦截 | [重写](https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet) / [过滤](https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet) |
 
 > 只要能抓到明文 JSON 响应且无响应体签名的接口，就能加进来。
 
@@ -47,8 +47,8 @@
 用单 App 引用替代聚合引用（二选一，别同时加）：
 
 ```
-重写：  https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
-过滤器：https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet
+重写：  https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu.snippet
+过滤器：https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/tbulu-filter.snippet
 ```
 
 ---
@@ -56,7 +56,7 @@
 ## 三、手动导入（不用引用功能）
 
 不想用引用机制的话，把
-[`AdBlock-All.conf`](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.conf)
+[`AdBlock-All.conf`](https://ghfast.top/https://raw.githubusercontent.com/Cchenggg/QX/main/dist/AdBlock-All.conf)
 的内容复制到 QX → 设置 → 配置文件 → `⋯` → 编辑 里，按段落合并：
 
 | 段落 | 怎么加 |
@@ -86,23 +86,27 @@
 | 现象 | 处理 |
 |---|---|
 | 脚本没生效，日志无标签输出 | ① MITM **证书信任开关**没开（最常见）② 引用没加载 ③ 脚本地址拉不到 |
-| 引用地址打不开 | 换前缀：`gh-proxy.com` → `ghfast.top`，见下 |
+| 引用地址打不开 | 换前缀：`ghfast.top` / `gh-proxy.com` / 直连 raw，见下方「地址选择」 |
 | 有日志但开屏广告还在 | 该 App 的 `getSplash` 走了 QUIC 绕过 MITM，见「已知限制」 |
 | 某 App 功能异常 | 把该 App 的 filter 域名注释掉复测，确认是否拦多了 |
 | App 升级后失效 | 重新抓包比对接口字段，可能要调整脚本 |
 
 ### 地址选择
 
-所有脚本与片段地址默认用 `gh-proxy.com` 前缀代理，因为实测
+所有脚本与片段地址默认用 `ghfast.top` 前缀代理，因为实测
 `raw.githubusercontent.com` 国内直连**不稳定**：
 
-| 地址 | 直连成功率 | 延迟 |
-|---|---|---|
-| `https://gh-proxy.com/` | 6/6 | 0.7~1.3s |
-| `https://ghfast.top/` | 6/6 | 1.1~1.4s |
-| `https://raw.githubusercontent.com/` | 5/6（失败卡 15s） | — |
+| 地址 | 直连成功率 | 延迟 | 更新时效 |
+|---|---|---|---|
+| `https://ghfast.top/` ← **默认** | 6/6 | 1.1~1.4s | 即时 |
+| `https://gh-proxy.com/` | 6/6 | 0.7~1.3s | **有 60s CDN 缓存**，刚推送后会短暂下发旧版 |
+| `https://raw.githubusercontent.com/` | 5/6（失败卡 15s） | — | 即时 |
 
-若确定 QX 里 GitHub 走代理，可把所有 `https://gh-proxy.com/https://raw.githubusercontent.com/`
+> 为什么不用更快的 `gh-proxy.com` 当默认：它带 `max-age=60` 的缓存层，
+> 改完规则推送后约 1 分钟内仍可能下发旧内容（实测响应头 `age: 50`）。
+> 做规则分发时「即时」比「快 0.3 秒」重要。
+
+若确定 QX 里 GitHub 走代理，可把所有 `https://ghfast.top/https://raw.githubusercontent.com/`
 替换为 `https://raw.githubusercontent.com/`。
 
 ### 更新机制
