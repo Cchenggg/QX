@@ -1,14 +1,4 @@
-# 两步路去广告 — Quantumult X
-
-针对「两步路 / 户外助手」(`lolaage.2bulu.zhushou`) 的 Quantumult X 去广告脚本。
-
-解决的痛点：**开屏和弹窗广告极易误触、直接跳转第三方 App**（有赞商城、App Store、京东等）。
-
-- 适配版本：iOS **9.2.7**（2026-10-15 抓包）
-- 脚本清单：见 [`SCRIPTS.md`](SCRIPTS.md)
-- 脚本地址**直接用 GitHub 上的 raw 地址**，QX 会自动同步，不需要往手机传文件
-
----
+# 去广告 — Quantumult X
 
 ## 一、安装（5 分钟）
 
@@ -18,16 +8,18 @@
 [`rewrite.conf`](https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf)
 里的内容追加进去，注意：
 
-| 段落 | 怎么加 |
-|---|---|
+| 段落              | 怎么加                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ |
 | `[rewrite_local]` | 把 6 条规则贴进去（你的配置里通常已有这个 section，**只贴规则行，别重复写 section 标题**） |
-| `[filter_local]` | 同上，贴 31 条 `host, 域名, reject` |
-| `[mitm]` | 把 `hostname` 那行**追加**到已有的 hostname 后面，**不要覆盖** |
+| `[filter_local]`  | 同上，贴 31 条 `host, 域名, reject`                                                        |
+| `[mitm]`          | 把 `hostname` 那行**追加**到已有的 hostname 后面，**不要覆盖**                             |
 
 > **偷懒办法**：也可以走「引用模式」——QX → 设置 → 重写 → 引用 → 添加：
+>
 > ```
 > https://gh-proxy.com/https://raw.githubusercontent.com/Cchenggg/QX/main/rewrite.conf
 > ```
+>
 > 之后规则改动你在 GitHub 上一提交，QX 自动同步，不用再手动贴。
 > 但 `[mitm]` 的 hostname 仍需手动加（引用不会合并 MITM）。
 
@@ -62,8 +54,8 @@
 
 完整清单（含每个脚本处理的接口、配套规则、MITM 域名）见 **[`SCRIPTS.md`](SCRIPTS.md)**。
 
-| 脚本 | 用途 |
-|---|---|
+| 脚本           | 用途                                                            |
+| -------------- | --------------------------------------------------------------- |
 | `tbulu-ads.js` | 两步路去广告：关开屏/插屏广告开关、清空广告位、过滤信息流推广位 |
 
 **新增脚本只改两个地方**：`SCRIPTS.md` 加一行，`rewrite.conf` 加对应规则。详细步骤见 SCRIPTS.md 末尾。
@@ -74,12 +66,12 @@
 
 所有脚本地址**默认用 `gh-proxy.com` 前缀代理**，因为实测 `raw.githubusercontent.com` 在国内直连极不稳定：
 
-| 地址 | 直连表现 | 结论 |
-|---|---|---|
-| `https://gh-proxy.com/` | 200/200/200，0.7~1.3s | **默认推荐** |
-| `https://ghfast.top/` | 200/200/200，1.1~1.4s | 等价替代 |
-| `https://cdn.jsdelivr.net/gh/Cchenggg/QX@main/` | 200/200/200，0.4~1.0s | 等价替代（路径格式不同） |
-| `https://raw.githubusercontent.com/` | **000/000/200，15s 超时** | 仅 QX 走代理时可用 |
+| 地址                                            | 直连表现                  | 结论                     |
+| ----------------------------------------------- | ------------------------- | ------------------------ |
+| `https://gh-proxy.com/`                         | 200/200/200，0.7~1.3s     | **默认推荐**             |
+| `https://ghfast.top/`                           | 200/200/200，1.1~1.4s     | 等价替代                 |
+| `https://cdn.jsdelivr.net/gh/Cchenggg/QX@main/` | 200/200/200，0.4~1.0s     | 等价替代（路径格式不同） |
+| `https://raw.githubusercontent.com/`            | **000/000/200，15s 超时** | 仅 QX 走代理时可用       |
 
 已验证四种地址返回的内容 SHA256 与仓库文件**完全一致**。
 
@@ -91,13 +83,13 @@
 
 ## 四、排查
 
-| 现象 | 处理 |
-|---|---|
+| 现象                     | 处理                                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
 | 日志里没有 `[2bulu-ads]` | ① MITM 证书**信任开关**没开（最常见）② 重写规则没加载 ③ 脚本地址拉不到，在 QX 里手动打开那个脚本地址试试 |
-| 脚本地址打不开 | 换前缀，见上方「地址选择」 |
-| 有日志但开屏广告还在 | `getSplash` 走了 QUIC 绕过 MITM，见下方「已知限制」 |
-| 两步路功能异常 | 把 `[filter_local]` 全部规则注释掉重启 App 复测，确认是不是拦多了 |
-| App 升级后失效 | 重新抓包比对 `adConfig/get` 字段，可能要调整脚本 |
+| 脚本地址打不开           | 换前缀，见上方「地址选择」                                                                               |
+| 有日志但开屏广告还在     | `getSplash` 走了 QUIC 绕过 MITM，见下方「已知限制」                                                      |
+| 两步路功能异常           | 把 `[filter_local]` 全部规则注释掉重启 App 复测，确认是不是拦多了                                        |
+| App 升级后失效           | 重新抓包比对 `adConfig/get` 字段，可能要调整脚本                                                         |
 
 ---
 
@@ -107,20 +99,34 @@
 （只有请求带 `psign`），所以可以安全改写。原始响应：
 
 ```json
-{"errCode":"0","data":{
-  "splashAd":{"on":true,"dailyMaxDisplayCount":10,"randomDisplay":false,
-              "adList":[{"adType":"taku","num":3,"index":0},
-                        {"adType":"2bulu","num":1,"index":1}],
-              "hotStart":{"on":true,"displayInterval":120000}},
-  "interstitialAd":{"on":true,"dailyMaxDisplayCount":3,"hotStart":null}}}
+{
+  "errCode": "0",
+  "data": {
+    "splashAd": {
+      "on": true,
+      "dailyMaxDisplayCount": 10,
+      "randomDisplay": false,
+      "adList": [
+        { "adType": "taku", "num": 3, "index": 0 },
+        { "adType": "2bulu", "num": 1, "index": 1 }
+      ],
+      "hotStart": { "on": true, "displayInterval": 120000 }
+    },
+    "interstitialAd": {
+      "on": true,
+      "dailyMaxDisplayCount": 3,
+      "hotStart": null
+    }
+  }
+}
 ```
 
-| 字段 | 含义 |
-|---|---|
-| `splashAd.on = true` | 开屏广告开启 |
-| `adList: taku×3 + 2bulu×1` | 开屏 3 次走 TopOn 联盟素材、1 次走自家素材 |
-| `splashAd.hotStart.on=true`<br>`displayInterval=120000` | **热启动二次开屏**，间隔 2 分钟 |
-| `interstitialAd.on = true` | 插屏 / 弹窗广告开启 |
+| 字段                                                    | 含义                                       |
+| ------------------------------------------------------- | ------------------------------------------ |
+| `splashAd.on = true`                                    | 开屏广告开启                               |
+| `adList: taku×3 + 2bulu×1`                              | 开屏 3 次走 TopOn 联盟素材、1 次走自家素材 |
+| `splashAd.hotStart.on=true`<br>`displayInterval=120000` | **热启动二次开屏**，间隔 2 分钟            |
+| `interstitialAd.on = true`                              | 插屏 / 弹窗广告开启                        |
 
 真实时间线（对应「冷启动 → 开屏 → 我的 → 弹窗」）：
 
